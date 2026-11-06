@@ -1,0 +1,48 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #141224;
+  color: #f4f1ff;
+  font-family: system-ui, sans-serif;
+  line-height: 1.6;
+}
+
+.topo,
+.conteudo {
+  width: min(calc(100% - 2rem), 68rem);
+  margin-inline: auto;
+}
+
+.topo,
+.menu {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.topo {
+  justify-content: space-between;
+  padding-block: 1rem;
+  border-bottom: 1px solid #453d60;
+}
+
+.topo a {
+  color: inherit;
+}
+
+.marca {
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.menu .router-link-exact-active {
+  color: #ffe575;
+}
+
+.conteudo {
+  padding-block: 2rem;
+}
