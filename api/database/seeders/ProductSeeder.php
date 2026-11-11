@@ -192,5 +192,7 @@ class ProductSeeder extends Seeder
                 ],
             );
         }
+
+        $this->call(RetroProductImageSeeder::class);
     }
 }

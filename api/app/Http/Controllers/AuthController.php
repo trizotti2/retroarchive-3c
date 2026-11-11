@@ -17,25 +17,16 @@ class AuthController extends Controller
     }
 
     public function register(RegisterRequest $request): JsonResponse
-{
-    $result = $this->auth->register($request, $request->validated());
+    {
+        $result = $this->auth->register($request, $request->validated());
 
-    return $this->accountResponse($result)->response()->setStatusCode(201);
-}
+        return $this->accountResponse($result)->response()->setStatusCode(201);
+    }
 
-public function login(LoginRequest $request): UserResource
-{
-    $result = $this->auth->login($request, $request->validated());
-
-    return $this->accountResponse($result);
-}
-
-private function accountResponse(array $result): UserResource
-{
-    return (new UserResource($result['user']))->additional([
-        'cart_adjustments' => $result['adjustments'],
-    ]);
-}
+    public function login(LoginRequest $request): UserResource
+    {
+        return $this->accountResponse($this->auth->login($request, $request->validated()));
+    }
 
     public function me(Request $request): UserResource
     {
@@ -47,5 +38,10 @@ private function accountResponse(array $result): UserResource
         $this->auth->logout($request);
 
         return response()->noContent();
+    }
+
+    private function accountResponse(array $result): UserResource
+    {
+        return (new UserResource($result['user']))->additional(['cart_adjustments' => $result['adjustments']]);
     }
 }

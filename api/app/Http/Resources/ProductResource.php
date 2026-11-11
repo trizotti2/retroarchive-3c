@@ -9,20 +9,19 @@ class ProductResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $photoUrl = $this->resource->photoUrl();
+
         return [
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
             'price_cents' => $this->price_cents,
             'stock' => $this->stock,
-            'available' => $this->stock > 0,
-            'image_url' => $this->image_path
-                ? '/storage/'.$this->image_path
-                : null,
-            'category' => $this->whenLoaded(
-                'category',
-                fn () => new CategoryResource($this->category),
-            ),
+            'is_active' => $this->is_active,
+            'available' => $this->is_active && $this->stock > 0,
+            'photo_url' => $photoUrl,
+            'image_url' => $photoUrl,
+            'category' => $this->whenLoaded('category', fn () => new CategoryResource($this->category)),
         ];
     }
 }
