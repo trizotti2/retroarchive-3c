@@ -14,7 +14,19 @@ const router = createRouter({
       path: '/catalogo',
       name: 'catalogo',
       component: CatalogView
-    }
+    },
+    {
+  path: '/entrar',
+  name: 'login',
+  component: AuthPage,
+  props: { mode: 'login' },
+},
+{
+  path: '/cadastro',
+  name: 'register',
+  component: AuthPage,
+  props: { mode: 'register' },
+},
   ],
 })
 

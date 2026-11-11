@@ -15,6 +15,7 @@ class ProductResource extends JsonResource
             'description' => $this->description,
             'price_cents' => $this->price_cents,
             'stock' => $this->stock,
+            'available' => $this->stock > 0,
             'image_url' => $this->image_path
                 ? '/storage/'.$this->image_path
                 : null,
