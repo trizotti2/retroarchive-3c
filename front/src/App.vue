@@ -1,107 +1,94 @@
 <script setup>
-import { onMounted, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import { useCartStore } from './stores/cart'
 
 const auth = useAuthStore()
 const cart = useCartStore()
+const route = useRoute()
+const router = useRouter()
+const accountMenu = ref(null)
+
+watch(() => route.path, () => accountMenu.value?.removeAttribute('open'))
 
 onMounted(() => auth.restoreSession())
 
 watch(
   () => auth.ready ? (auth.user?.id ?? 'guest') : null,
   (owner) => {
-    if (owner !== null) cart.load()
+    if (owner !== null) cart.load(true)
   },
   { immediate: true },
 )
+
+async function logout() {
+  await auth.logout()
+  if (!auth.user && route.meta.auth) await router.replace({ name: 'catalog' })
+}
 </script>
 
 <template>
-  <v-app>
-    <v-app-bar color="indigo-darken-4">
-      <v-app-bar-title>
-        <RouterLink
-          :to="{ name: 'catalog' }"
-          class="text-white text-decoration-none"
-        >
-          Loja Retro
+  <div class="store-app">
+    <header class="site-header">
+      <div class="shell site-header-inner">
+        <RouterLink :to="{ name: 'catalog' }" class="brand" aria-label="Retro Archive, início">
+          <img src="/media/mark.svg" alt="" width="34" height="34" />
+          <span>RETRO<span class="accent">/</span>ARCHIVE<small>LOJA DE GAMES RETRÔ</small></span>
         </RouterLink>
-      </v-app-bar-title>
 
-      <v-btn :to="{ name: 'cart' }" size="small">
-        Carrinho ({{ cart.count }})
-      </v-btn>
+        <nav class="main-nav" aria-label="Navegação principal">
+          <RouterLink :to="{ name: 'catalog' }" exact-active-class="nav-active">Catálogo</RouterLink>
+          <RouterLink v-if="auth.user" :to="{ name: 'orders' }" active-class="nav-active">Pedidos</RouterLink>
+          <RouterLink v-if="auth.user?.role === 'admin'" :to="{ name: 'admin' }" active-class="nav-active">Painel</RouterLink>
+        </nav>
 
-      <template v-if="auth.user">
-        <span class="d-none d-md-inline mx-2">{{ auth.user.name }}</span>
+        <div class="nav-actions">
+          <AppButton :to="{ name: 'cart' }" variant="tonal" class="nav-button" prepend-icon="mdi-cart-outline" :aria-label="`Carrinho, ${cart.count} itens`">
+            <span class="cart-label">Carrinho</span><span class="cart-count">{{ cart.count }}</span>
+          </AppButton>
+          <AppButton v-if="!auth.user" :to="{ name: 'login' }" color="primary" class="nav-button">Entrar</AppButton>
+          <details v-else ref="accountMenu" class="account-menu">
+            <summary class="app-button button-outlined nav-button">
+              <span class="mdi mdi-account-outline" aria-hidden="true"></span>
+              <span class="account-label">{{ auth.user.name }}</span>
+              <span class="account-mobile">Conta</span>
+            </summary>
+            <nav aria-label="Minha conta">
+              <RouterLink :to="{ name: 'profile' }">Meu perfil</RouterLink>
+              <RouterLink :to="{ name: 'orders' }">Meus pedidos</RouterLink>
+              <RouterLink v-if="auth.user.role === 'admin'" :to="{ name: 'admin' }">Administração</RouterLink>
+              <button type="button" :disabled="cart.busy || auth.pending" @click="logout">Sair</button>
+            </nav>
+          </details>
+        </div>
+      </div>
+    </header>
 
-        <v-btn
-          size="small"
-          :disabled="cart.busy"
-          :loading="auth.pending"
-          @click="auth.logout()"
-        >
-          Sair
-        </v-btn>
-      </template>
+    <main>
+      <div class="shell main-content">
+        <AppAlert v-if="auth.error" type="error" class="mb-5">{{ auth.error }}</AppAlert>
 
-      <template v-else>
-        <v-btn
-          :to="{ name: 'login' }"
-          :disabled="auth.pending"
-          size="small"
-        >
-          Entrar
-        </v-btn>
-
-        <v-btn
-          :to="{ name: 'register' }"
-          :disabled="auth.pending"
-          size="small"
-          class="d-none d-sm-inline-flex"
-        >
-          Criar conta
-        </v-btn>
-      </template>
-    </v-app-bar>
-
-    <v-main>
-      <v-container class="py-6">
-        <v-progress-linear v-if="!auth.ready" indeterminate class="mb-4" />
-
-        <v-alert v-if="auth.error" type="error" class="mb-4">
-          {{ auth.error }}
-        </v-alert>
-
-        <v-alert
-          v-if="auth.cartAdjustments?.length"
-          type="warning"
-          class="mb-4"
-        >
-          <p class="font-weight-bold mb-2">
-            O carrinho foi ajustado ao estoque atual.
-          </p>
-
-          <ul class="ml-5">
+        <AppAlert v-if="auth.cartAdjustments.length" type="warning" class="mb-5">
+          <strong>Seu carrinho foi ajustado ao estoque atual.</strong>
+          <ul class="ml-4 mt-1">
             <li v-for="item in auth.cartAdjustments" :key="item.product_id">
-              <template v-if="item.accepted === 0">
-                {{ item.name }} saiu do carrinho por indisponibilidade.
-              </template>
-              <template v-else>
-                {{ item.name }} passou de {{ item.requested }} para
-                {{ item.accepted }} unidade(s).
-              </template>
+              {{ item.name }}: {{ item.accepted ? `de ${item.requested} para ${item.accepted} unidade(s)` : 'removido por indisponibilidade' }}.
             </li>
           </ul>
+          <AppButton variant="text" size="small" class="mt-2" @click="auth.cartAdjustments = []">Entendi</AppButton>
+        </AppAlert>
 
-          <v-btn variant="text" class="mt-2" @click="auth.cartAdjustments = []">
-            Entendi
-          </v-btn>
-        </v-alert>
+        <RouterView :key="route.path" />
+      </div>
+    </main>
 
-        <RouterView :key="$route.path" />
-      </v-container>
-    </v-main>
-  </v-app>
+    <footer class="site-footer">
+      <div class="shell footer-inner">
+        <span class="mono"><span class="accent">RA</span> // RETRO ARCHIVE</span>
+        <span>Projeto acadêmico · pagamento simulado</span>
+        <div class="actions"><RouterLink :to="{ name: 'docs' }">Documentação da API</RouterLink><a href="/creditos-imagens.html">Créditos das imagens</a></div>
+      </div>
+    </footer>
+  </div>
 </template>

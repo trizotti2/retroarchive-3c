@@ -1,0 +1,1890 @@
+openapi: 3.1.0
+info:
+  title: Retro Archive API
+  version: 1.0.0
+  description: Loja acadêmica de games retrô. Abra o Swagger pela mesma origem do Vue para usar o cookie HttpOnly
+    de sessão. O Swagger prepara CSRF antes de escrever. O nome do cookie de sessão depende da configuração
+    do Laravel.
+servers:
+- url: /api
+paths:
+  /ping:
+    get:
+      tags:
+      - Catálogo
+      summary: Verificar a API
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /categories:
+    get:
+      tags:
+      - Catálogo
+      summary: Listar categorias
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+                required:
+                - data
+  /products:
+    get:
+      tags:
+      - Catálogo
+      summary: Listar produtos ativos
+      parameters:
+      - name: search
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - latest
+          - price_asc
+          - price_desc
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  meta:
+                    $ref: '#/components/schemas/Pagination'
+                  links:
+                    type: object
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /products/{id}:
+    get:
+      tags:
+      - Catálogo
+      summary: Consultar produto ativo
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Product'
+                required:
+                - data
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/register:
+    post:
+      tags:
+      - Sessão
+      summary: Cadastrar e entrar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Limite de requisições atingido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/login:
+    post:
+      tags:
+      - Sessão
+      summary: Entrar e fundir carrinho
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Limite de requisições atingido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/me:
+    get:
+      tags:
+      - Sessão
+      summary: Consultar conta atual
+      security:
+      - session: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/logout:
+    post:
+      tags:
+      - Sessão
+      summary: Encerrar a sessão
+      security:
+      - session: []
+      responses:
+        '204':
+          description: Concluído
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart:
+    get:
+      tags:
+      - Carrinho
+      summary: Consultar carrinho da sessão
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+  /cart/items:
+    post:
+      tags:
+      - Carrinho
+      summary: Adicionar unidades ao produto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                product_id:
+                  type: integer
+                  minimum: 1
+                quantity:
+                  type: integer
+                  minimum: 1
+              required:
+              - product_id
+              - quantity
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart/items/{id}:
+    patch:
+      tags:
+      - Carrinho
+      summary: Editar quantidade de uma linha
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 0
+              required:
+              - quantity
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Carrinho
+      summary: Remover linha
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+                required:
+                - data
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /profile:
+    patch:
+      tags:
+      - Perfil
+      summary: Editar conta atual
+      security:
+      - session: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+              required:
+              - name
+              - email
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /addresses:
+    get:
+      tags:
+      - Perfil
+      summary: Listar endereços próprios
+      security:
+      - session: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Address'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+      - Perfil
+      summary: Cadastrar endereço
+      security:
+      - session: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressInput'
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Address'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /addresses/{id}:
+    patch:
+      tags:
+      - Perfil
+      summary: Editar endereço próprio
+      security:
+      - session: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressInput'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Address'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Perfil
+      summary: Excluir endereço próprio
+      security:
+      - session: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '204':
+          description: Concluído
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /orders:
+    post:
+      tags:
+      - Pedidos
+      summary: Confirmar checkout
+      description: Usa o carrinho autenticado. Grava preços e endereço, baixa estoque e esvazia o carrinho
+        em uma transação.
+      security:
+      - session: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                address_id:
+                  type: integer
+                  minimum: 1
+              required:
+              - address_id
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      tags:
+      - Pedidos
+      summary: Listar meus pedidos
+      security:
+      - session: []
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  meta:
+                    $ref: '#/components/schemas/Pagination'
+                  links:
+                    type: object
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /orders/{id}:
+    get:
+      tags:
+      - Pedidos
+      summary: Ver pedido próprio ou consultar como admin
+      security:
+      - session: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /orders/{id}/pay:
+    post:
+      tags:
+      - Pedidos
+      summary: Confirmar pagamento simulado
+      description: Somente o dono do pedido pode simular o pagamento. A operação registra paid_at.
+      security:
+      - session: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acesso negado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Operação incompatível com o estado atual
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /orders/{id}/cancel:
+    post:
+      tags:
+      - Pedidos
+      summary: Cancelar pedido pendente
+      description: Dono ou admin. O cancelamento de um pedido pendente devolve o estoque.
+      security:
+      - session: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acesso negado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Operação incompatível com o estado atual
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/categories:
+    post:
+      tags:
+      - Admin
+      summary: Criar categoria
+      security:
+      - session: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryInput'
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Category'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acesso negado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/categories/{category}:
+    patch:
+      tags:
+      - Admin
+      summary: Editar categoria
+      security:
+      - session: []
+      parameters:
+      - name: category
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryInput'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Category'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acesso negado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Admin
+      summary: Excluir categoria sem produtos
+      security:
+      - session: []
+      parameters:
+      - name: category
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '204':
+          description: Concluído
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acesso negado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Operação incompatível com o estado atual
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/products:
+    get:
+      tags:
+      - Admin
+      summary: Listar produtos, inclusive inativos
+      security:
+      - session: []
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  meta:
+                    $ref: '#/components/schemas/Pagination'
+                  links:
+                    type: object
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acesso negado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+      - Admin
+      summary: Criar produto
+      security:
+      - session: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Product'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acesso negado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/products/{product}:
+    patch:
+      tags:
+      - Admin
+      summary: Editar produto por JSON
+      security:
+      - session: []
+      parameters:
+      - name: product
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category_id:
+                  type: integer
+                  minimum: 1
+                name:
+                  type: string
+                description:
+                  type: string
+                price_cents:
+                  type: integer
+                  minimum: 0
+                  description: Valor em centavos de real.
+                stock:
+                  type: integer
+                  minimum: 0
+                  description: Unidades em estoque.
+                is_active:
+                  type: boolean
+                photo_url:
+                  type:
+                  - string
+                  - 'null'
+                  format: uri
+                  description: Link direto HTTP ou HTTPS. O envio de um arquivo tem prioridade.
+              required:
+              - category_id
+              - name
+              - description
+              - price_cents
+              - stock
+              - is_active
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Product'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acesso negado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+      - Admin
+      summary: Editar produto com imagem via _method
+      security:
+      - session: []
+      parameters:
+      - name: product
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                category_id:
+                  type: integer
+                  minimum: 1
+                name:
+                  type: string
+                description:
+                  type: string
+                price_cents:
+                  type: integer
+                  minimum: 0
+                  description: Valor em centavos de real.
+                stock:
+                  type: integer
+                  minimum: 0
+                  description: Unidades em estoque.
+                is_active:
+                  type: boolean
+                photo_url:
+                  type:
+                  - string
+                  - 'null'
+                  format: uri
+                  description: Link direto HTTP ou HTTPS. O envio de um arquivo tem prioridade.
+                image:
+                  type: string
+                  format: binary
+                _method:
+                  type: string
+                  enum:
+                  - PATCH
+                  default: PATCH
+              required:
+              - category_id
+              - name
+              - description
+              - price_cents
+              - stock
+              - is_active
+              - _method
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Product'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acesso negado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Admin
+      summary: Excluir produto logicamente
+      security:
+      - session: []
+      parameters:
+      - name: product
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '204':
+          description: Concluído
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acesso negado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: Listar usuários cadastrados
+      security:
+      - session: []
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: Usuários paginados com nome, e-mail e papel
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  meta:
+                    $ref: '#/components/schemas/Pagination'
+                  links:
+                    type: object
+        '401':
+          description: Sessão necessária
+        '403':
+          description: Acesso exclusivo da administração
+  /admin/orders:
+    get:
+      tags:
+      - Admin
+      summary: Listar pedidos de todas as contas
+      security:
+      - session: []
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - pending_payment
+          - paid
+          - shipped
+          - delivered
+          - cancelled
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+                  meta:
+                    $ref: '#/components/schemas/Pagination'
+                  links:
+                    type: object
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acesso negado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/orders/{id}/status:
+    patch:
+      tags:
+      - Admin
+      summary: Avançar expedição do pedido
+      security:
+      - session: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                  - shipped
+                  - delivered
+              required:
+              - status
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Order'
+                required:
+                - data
+        '401':
+          description: Sessão necessária
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Acesso negado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Recurso indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Operação incompatível com o estado atual
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '419':
+          description: Sessão ou CSRF inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validação falhou
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /sanctum/csrf-cookie:
+    servers:
+    - url: /
+    get:
+      tags:
+      - Sessão
+      summary: Inicializar sessão e CSRF
+      responses:
+        '204':
+          description: Cookies inicializados
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: laravel_session
+      description: Sessão de navegador. O cookie real é configurável e é enviado automaticamente.
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum:
+          - customer
+          - admin
+    Credentials:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          example: ana@retro.example
+        password:
+          type: string
+          format: password
+      required:
+      - email
+      - password
+    Register:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+          example: ana@retro.example
+        password:
+          type: string
+          format: password
+        password_confirmation:
+          type: string
+          format: password
+      required:
+      - name
+      - email
+      - password
+      - password_confirmation
+    AuthResult:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/User'
+        cart_adjustments:
+          type: array
+          items:
+            type: object
+            properties:
+              product_id:
+                type: integer
+                minimum: 1
+              name:
+                type: string
+              requested:
+                type: integer
+              accepted:
+                type: integer
+    CategoryInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Consoles
+        slug:
+          type: string
+          example: consoles
+      required:
+      - name
+      - slug
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          example: Consoles
+        slug:
+          type: string
+          example: consoles
+    ProductInput:
+      type: object
+      properties:
+        category_id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+        description:
+          type: string
+        price_cents:
+          type: integer
+          minimum: 0
+          description: Valor em centavos de real.
+        stock:
+          type: integer
+          minimum: 0
+          description: Unidades em estoque.
+        is_active:
+          type: boolean
+        photo_url:
+          type:
+          - string
+          - 'null'
+          format: uri
+          description: Link direto HTTP ou HTTPS. O envio de um arquivo tem prioridade.
+        image:
+          type: string
+          format: binary
+      required:
+      - category_id
+      - name
+      - description
+      - price_cents
+      - stock
+      - is_active
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+        description:
+          type: string
+        price_cents:
+          type: integer
+          minimum: 0
+          description: Valor em centavos de real.
+        stock:
+          type: integer
+          minimum: 0
+          description: Unidades em estoque.
+        is_active:
+          type: boolean
+        available:
+          type: boolean
+        photo_url:
+          type:
+          - string
+          - 'null'
+          description: Link externo ou caminho local em /storage/.
+        image_url:
+          type:
+          - string
+          - 'null'
+        category:
+          $ref: '#/components/schemas/Category'
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        product_id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+        photo_url:
+          type:
+          - string
+          - 'null'
+          description: Link externo ou caminho local em /storage/.
+        image_url:
+          type:
+          - string
+          - 'null'
+        quantity:
+          type: integer
+        stock:
+          type: integer
+        unit_price_cents:
+          type: integer
+          minimum: 0
+          description: Valor em centavos de real.
+        subtotal_cents:
+          type: integer
+          minimum: 0
+          description: Valor em centavos de real.
+        available:
+          type: boolean
+    Cart:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        total_cents:
+          type: integer
+          minimum: 0
+          description: Valor em centavos de real.
+        shipping_cents:
+          type: integer
+          minimum: 0
+          description: Valor em centavos de real.
+        checkout_total_cents:
+          type: integer
+          minimum: 0
+          description: Valor em centavos de real.
+    AddressInput:
+      type: object
+      properties:
+        recipient:
+          type: string
+          example: Cliente Demo
+        postal_code:
+          type: string
+          example: 01001-000
+        street:
+          type: string
+          example: Rua de Demonstração
+        number:
+          type: string
+          example: '16'
+        complement:
+          type:
+          - string
+          - 'null'
+        neighborhood:
+          type: string
+          example: Centro
+        city:
+          type: string
+          example: São Paulo
+        state:
+          type: string
+          example: SP
+      required:
+      - recipient
+      - postal_code
+      - street
+      - number
+      - neighborhood
+      - city
+      - state
+    Address:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        recipient:
+          type: string
+          example: Cliente Demo
+        postal_code:
+          type: string
+          example: 01001-000
+        street:
+          type: string
+          example: Rua de Demonstração
+        number:
+          type: string
+          example: '16'
+        complement:
+          type:
+          - string
+          - 'null'
+        neighborhood:
+          type: string
+          example: Centro
+        city:
+          type: string
+          example: São Paulo
+        state:
+          type: string
+          example: SP
+    OrderLine:
+      type: object
+      properties:
+        product_id:
+          type: integer
+          minimum: 1
+        product_name:
+          type: string
+        quantity:
+          type: integer
+        unit_price_cents:
+          type: integer
+          minimum: 0
+          description: Valor em centavos de real.
+        subtotal_cents:
+          type: integer
+          minimum: 0
+          description: Valor em centavos de real.
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        user_id:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum:
+          - pending_payment
+          - paid
+          - shipped
+          - delivered
+          - cancelled
+        shipping_address:
+          $ref: '#/components/schemas/AddressInput'
+        subtotal_cents:
+          type: integer
+          minimum: 0
+          description: Valor em centavos de real.
+        shipping_cents:
+          type: integer
+          minimum: 0
+          description: Valor em centavos de real.
+        total_cents:
+          type: integer
+          minimum: 0
+          description: Valor em centavos de real.
+        created_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        paid_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLine'
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    Pagination:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        last_page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer

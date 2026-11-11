@@ -1,69 +1,62 @@
 import { defineStore } from 'pinia'
-import { api } from '../api/api'
+import api, { failure, mutate } from '../api/api'
 
 export const useCartStore = defineStore('cart', {
   state: () => ({
-    items: [],
-    totalCents: 0,
-    busy: false,
-    error: '',
+    items: [], totalCents: 0, shippingCents: 0, checkoutTotalCents: 0,
+    busy: false, error: '', revision: 0,
   }),
 
   getters: {
     count: (state) => state.items.reduce((sum, item) => sum + item.quantity, 0),
+    hasUnavailable: (state) => state.items.some((item) => !item.available),
   },
 
   actions: {
-    async load() {
-      if (this.busy) return false
+    setCart(cart) {
+      this.items = cart.items
+      this.totalCents = cart.total_cents
+      this.shippingCents = cart.shipping_cents
+      this.checkoutTotalCents = cart.checkout_total_cents
+    },
 
-      this.items = []
-      this.totalCents = 0
+    async load(reset = false) {
+      if (reset) {
+        this.setCart({ items: [], total_cents: 0, shipping_cents: 0, checkout_total_cents: 0 })
+      }
 
-      return this.request('get', '/api/cart')
+      return this.request(async () => (await api.get('/cart')).data, reset)
     },
 
     add(productId, quantity) {
-      return this.request('post', '/api/cart/items', {
-        product_id: productId,
-        quantity,
-      })
+      return this.request(() => mutate('post', '/cart/items', { product_id: productId, quantity }))
     },
 
-    update(itemId, quantity) {
-      return this.request('patch', `/api/cart/items/${itemId}`, { quantity })
+    update(id, quantity) {
+      return this.request(() => mutate('patch', `/cart/items/${id}`, { quantity }))
     },
 
-    remove(itemId) {
-      return this.request('delete', `/api/cart/items/${itemId}`)
+    remove(id) {
+      return this.request(() => mutate('delete', `/cart/items/${id}`))
     },
 
-    async request(method, url, data) {
-      if (this.busy) return false
+    async request(send, replace = false) {
+      if (this.busy && !replace) return false
 
+      const revision = ++this.revision
       this.busy = true
       this.error = ''
 
       try {
-        if (method !== 'get') {
-          await api.get('/sanctum/csrf-cookie')
-        }
-
-        const { data: payload } = await api.request({ method, url, data })
-
-        this.items = payload.data.items
-        this.totalCents = payload.data.total_cents
-
+        const payload = await send()
+        if (revision !== this.revision) return false
+        this.setCart(payload.data)
         return true
       } catch (error) {
-        const errors = error.response?.data?.errors ?? {}
-
-        this.error = Object.values(errors).flat()[0]
-          ?? 'Não foi possível acessar o carrinho. Tente novamente.'
-
+        if (revision === this.revision) this.error = failure(error, 'Não foi possível carregar o carrinho.')
         return false
       } finally {
-        this.busy = false
+        if (revision === this.revision) this.busy = false
       }
     },
   },

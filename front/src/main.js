@@ -1,34 +1,52 @@
 import '@mdi/font/css/materialdesignicons.css'
-import 'vuetify/styles'
-
+import '@fontsource/space-grotesk/latin-400.css'
+import '@fontsource/space-grotesk/latin-500.css'
+import '@fontsource/space-grotesk/latin-600.css'
+import '@fontsource/space-grotesk/latin-700.css'
+import '@fontsource/ibm-plex-mono/latin-500.css'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import { createRouter, createWebHashHistory } from 'vue-router'
-import { createVuetify } from 'vuetify'
 import App from './App.vue'
-import CatalogView from './views/CatalogView.vue'
-import ProductView from './views/ProductView.vue'
-import AuthView from './views/AuthView.vue'
-import CartView from './views/CartView.vue'
+import AppButton from './components/ui/AppButton.vue'
+import AppField from './components/ui/AppField.vue'
+import AppSelect from './components/ui/AppSelect.vue'
+import AppDialog from './components/ui/AppDialog.vue'
+import AppPagination from './components/ui/AppPagination.vue'
+import AppAlert from './components/ui/AppAlert.vue'
+import AppChip from './components/ui/AppChip.vue'
+import AppProgress from './components/ui/AppProgress.vue'
+import AppIcon from './components/ui/AppIcon.vue'
+import api from './api/api'
+import router from './router'
+import { useAuthStore } from './stores/auth'
+import './assets/main.css'
 
-const router = createRouter({
-  history: createWebHashHistory(),
-  routes: [
-    { path: '/', name: 'catalogo', component: CatalogView },
-    {
-      path: '/produtos/:id',
-      name: 'product',
-      component: ProductView,
-      props: true,
-    },
-    {
-      path: '/autenticacao',
-      name: 'autenticacao',
-      component: AuthView,
-      props: true,
-    },
-    { path: '/carrinho', name: 'cart', component: CartPage },
-  ],
+const pinia = createPinia()
+const auth = useAuthStore(pinia)
+
+router.beforeEach(async (to) => {
+  if (!to.meta.auth) return true
+
+  await auth.restoreSession()
+  if (!auth.user) return { name: 'login', query: { next: to.fullPath } }
+  if (to.meta.admin && auth.user.role !== 'admin') return { name: 'catalog' }
+
+  return true
 })
 
-createApp(App).use(createPinia()).use(router).use(createVuetify()).mount('#app')
+api.interceptors.response.use((response) => response, (error) => {
+  if (error.response?.status === 401 && auth.user) {
+    auth.clearUser()
+    const current = router.currentRoute.value
+    if (current.meta.auth) router.replace({ name: 'login', query: { next: current.fullPath } })
+  }
+
+  return Promise.reject(error)
+})
+
+const app = createApp(App).use(pinia).use(router)
+const components = { AppButton, AppField, AppSelect, AppDialog, AppPagination, AppAlert, AppChip, AppProgress, AppIcon }
+for (const [name, component] of Object.entries(components)) {
+  app.component(name, component)
+}
+app.mount('#app')

@@ -1,89 +1,94 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
-import { formatPrice } from '../util/format'
+import { computed, reactive, watch } from 'vue'
+import ProductArt from '../components/ProductArt.vue'
+import { money } from '../util/format'
 import { useAuthStore } from '../stores/auth'
 import { useCartStore } from '../stores/cart'
 
 const auth = useAuthStore()
 const cart = useCartStore()
-const quantities = ref({})
-
+const quantities = reactive({})
 const locked = computed(() => !auth.ready || auth.pending || cart.busy)
 
-watch(
-  () => cart.items,
-  (items) => {
-    quantities.value = Object.fromEntries(
-      items.map((item) => [item.id, item.quantity]),
-    )
-  },
-  { immediate: true },
-)
+watch(() => cart.items, (items) => {
+  for (const id of Object.keys(quantities)) delete quantities[id]
+  for (const item of items) quantities[item.id] = item.quantity
+}, { immediate: true })
 </script>
 
 <template>
-  <h1 class="mb-4">Meu carrinho</h1>
+  <div class="page-heading">
+    <p class="eyebrow"><span class="signal-dot"></span> SEU INVENTÁRIO</p>
+    <h1 class="page-title">Meu carrinho</h1>
+  </div>
 
-  <v-progress-linear v-if="locked" indeterminate class="mb-4" />
-
-  <v-alert v-if="cart.error" type="error" class="mb-4">
+  <AppProgress v-if="locked" class="mb-4" />
+  <AppAlert v-if="cart.error" type="error" class="mb-5">
     {{ cart.error }}
-    <v-btn :disabled="locked" variant="text" @click="cart.load()">
-      Recarregar carrinho
-    </v-btn>
-  </v-alert>
+    <AppButton variant="text" size="small" :disabled="locked" @click="cart.load()">Atualizar carrinho</AppButton>
+  </AppAlert>
 
-  <p v-if="!locked && !cart.error && cart.items.length === 0">
-    Seu carrinho está vazio.
-  </p>
+  <div v-if="!locked && !cart.error && !cart.items.length" class="empty-state panel">
+    <AppIcon icon="mdi-cart-outline" size="40" color="primary" />
+    <h2>Seu carrinho está vazio</h2>
+    <p>Explore o arquivo e encontre a próxima peça para sua coleção.</p>
+    <AppButton :to="{ name: 'catalog' }" color="primary">Explorar catálogo</AppButton>
+  </div>
 
-  <v-card v-for="item in cart.items" :key="item.id" class="mb-4">
-    <v-card-title>{{ item.name }}</v-card-title>
+  <div v-if="cart.items.length" class="commerce-grid">
+    <div class="stack">
+      <article v-for="item in cart.items" :key="item.id" class="panel cart-line">
+        <div class="cart-thumb">
+          <ProductArt :src="item.image_url" />
+        </div>
+        <div class="cart-item-body">
+          <h2>{{ item.name }}</h2>
+          <p class="muted">{{ money(item.unit_price_cents) }} por unidade</p>
+          <AppChip v-if="!item.available" color="warning" class="mt-2">
+            Quantidade indisponível
+          </AppChip>
 
-    <v-card-text>
-      <p>Preço unitário: {{ formatPrice(item.unit_price_cents) }}</p>
-      <p>Subtotal: {{ formatPrice(item.subtotal_cents) }}</p>
+          <form class="actions line-actions" @submit.prevent="cart.update(item.id, quantities[item.id])">
+            <AppField
+              v-model.number="quantities[item.id]"
+              :label="`Quantidade de ${item.name}`"
+              type="number"
+              min="0"
+              step="1"
+              required
+              hide-details
+              :disabled="locked"
+            />
+            <AppButton type="submit" variant="tonal" size="small" :disabled="locked">Salvar</AppButton>
+            <AppButton type="button" variant="text" color="error" size="small" :disabled="locked" @click="cart.remove(item.id)">
+              Remover
+            </AppButton>
+          </form>
+        </div>
+        <strong class="cart-line-total">{{ money(item.subtotal_cents) }}</strong>
+      </article>
+    </div>
 
-      <v-alert v-if="!item.available" type="warning" class="my-3">
-        Item indisponível na quantidade atual.
-      </v-alert>
+    <aside class="panel summary-panel">
+      <p class="eyebrow"><span class="signal-dot"></span> RESUMO</p>
+      <h2>Seu pedido</h2>
+      <dl class="totals">
+        <div><dt>Subtotal</dt><dd>{{ money(cart.totalCents) }}</dd></div>
+        <div><dt>Frete fixo</dt><dd>{{ money(cart.shippingCents) }}</dd></div>
+        <div class="grand-total"><dt>Total</dt><dd>{{ money(cart.checkoutTotalCents) }}</dd></div>
+      </dl>
 
-      <v-form
-        class="mt-4"
-        :disabled="locked"
-        @submit.prevent="cart.update(item.id, quantities[item.id])"
-      >
-        <v-text-field
-          v-model.number="quantities[item.id]"
-          label="Quantidade"
-          type="number"
-          min="0"
-          hint="Use 0 para remover o item."
-          persistent-hint
-        />
+      <p v-if="cart.hasUnavailable" class="muted mb-3">Ajuste os itens indisponíveis para continuar.</p>
+      <p v-else-if="auth.ready && !auth.user" class="muted mb-3">Entre na sua conta para finalizar. O carrinho acompanha você.</p>
 
-        <v-btn type="submit" :disabled="locked" color="primary" class="mr-2">
-          Salvar quantidade
-        </v-btn>
-
-        <v-btn
-          type="button"
-          :disabled="locked"
-          variant="text"
-          color="error"
-          @click="cart.remove(item.id)"
-        >
-          Remover
-        </v-btn>
-      </v-form>
-    </v-card-text>
-  </v-card>
-
-  <p v-if="cart.items.length" class="text-h6">
-    Total: {{ formatPrice(cart.totalCents) }}
-  </p>
-
-  <v-btn :to="{ name: 'catalog' }" variant="text" class="mt-4">
-    Voltar ao catálogo
-  </v-btn>
+      <AppButton
+        :to="{ name: 'checkout' }"
+        color="primary"
+        append-icon="mdi-arrow-right"
+        block
+        :disabled="locked || cart.hasUnavailable"
+      >Ir para o checkout</AppButton>
+      <AppButton :to="{ name: 'catalog' }" variant="text" block class="mt-2">Continuar comprando</AppButton>
+    </aside>
+  </div>
 </template>
