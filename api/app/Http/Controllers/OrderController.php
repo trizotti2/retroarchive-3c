@@ -12,13 +12,11 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class OrderController extends Controller
 {
-    public function __construct(private OrderService $orders)
-    {
-    }
+    public function __construct(private OrderService $orders) {}
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        return OrderResource::collection($request->user()->orders()->latest('id')->paginate(15));
+        return OrderResource::collection($this->orders->paginateForUser($request->user()));
     }
 
     public function show(Request $request, string $id): OrderResource

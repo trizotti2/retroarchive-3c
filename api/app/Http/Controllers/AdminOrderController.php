@@ -11,22 +11,19 @@ use Illuminate\Validation\Rule;
 
 class AdminOrderController extends Controller
 {
+    public function __construct(private OrderService $orders) {}
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $filters = $request->validate(['status' => ['sometimes', 'required', Rule::in(Order::STATUSES)]]);
-        $query = Order::query()->latest('id');
 
-        if (isset($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
-
-        return OrderResource::collection($query->paginate(20)->withQueryString());
+        return OrderResource::collection($this->orders->paginateForAdmin($filters));
     }
 
-    public function update(Request $request, string $id, OrderService $orders): OrderResource
+    public function update(Request $request, string $id): OrderResource
     {
         $data = $request->validate(['status' => ['required', Rule::in(Order::STATUSES)]]);
 
-        return new OrderResource($orders->advance($this->positiveId($id), $data['status']));
+        return new OrderResource($this->orders->advance($this->positiveId($id), $data['status']));
     }
 }

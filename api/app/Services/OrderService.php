@@ -5,10 +5,30 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class OrderService
 {
+    public function paginateForUser(User $user): LengthAwarePaginator
+    {
+        return $user->orders()->latest('id')->paginate(15);
+    }
+
+    /**
+     * @param  array{status?: string}  $filters
+     */
+    public function paginateForAdmin(array $filters): LengthAwarePaginator
+    {
+        $query = Order::query()->latest('id');
+
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        return $query->paginate(20)->withQueryString();
+    }
+
     public function visibleTo(User $user, int $orderId): Order
     {
         $query = Order::query();
