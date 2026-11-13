@@ -16,6 +16,7 @@ class RetroProductImageSeeder extends Seeder
             'Sega Dreamcast' => 'sega-dreamcast.jpg',
             'Master System III' => 'master-system-iii.png',
             'Super Nintendo' => 'super-nintendo.jpg',
+            'Mega Drive III' => 'mega-drive-iii.jpg',
             'Nintendo 64' => 'nintendo-64.jpg',
             'PlayStation' => 'playstation.jpg',
             'Nintendo GameCube' => 'nintendo-gamecube.jpg',
@@ -24,7 +25,16 @@ class RetroProductImageSeeder extends Seeder
             'PlayStation 2 Slim' => 'playstation-2-slim.jpg',
         ],
         'jogos' => [
+            'Sonic Adventure' => 'sonic-adventure.jpg',
+            'Crazy Taxi' => 'crazy-taxi.jpg',
+            'Jet Set Radio' => 'jet-set-radio.jpg',
+            'Skies of Arcadia' => 'skies-of-arcadia.jpg',
+            'Shenmue' => 'shenmue.jpg',
+            'Super Mario World' => 'super-mario-world.jpg',
+            'Donkey Kong Country' => 'donkey-kong-country.jpg',
+            'Street Fighter II' => 'street-fighter-ii.jpg',
             'Mario Kart 64' => 'mario-kart-64.jpg',
+            'Sonic the Hedgehog 2' => 'sonic-the-hedgehog-2.jpg',
         ],
         'acessorios' => [
             'Visual Memory Unit' => 'visual-memory-unit.jpg',
@@ -35,6 +45,7 @@ class RetroProductImageSeeder extends Seeder
             'Memory Card PlayStation' => 'memory-card-playstation.jpg',
             'Memory Card GameCube' => 'memory-card-gamecube.png',
             'Cabo AV Nintendo' => 'cabo-av-nintendo.jpg',
+            'Adaptador USB de controle' => 'adaptador-usb-de-controle.jpg',
             'Estojo para cartuchos' => 'estojo-para-cartuchos.jpg',
         ],
     ];
@@ -72,6 +83,8 @@ class RetroProductImageSeeder extends Seeder
                 $demoPaths = ["retro-demo/{$categorySlug}.svg", "retro-demo/{$template}"];
                 if ($original !== null) {
                     $demoPaths[] = "retro-demo/{$original}";
+                    // Reconhece fotos antigas que foram salvas com a extensão PNG.
+                    $demoPaths[] = "retro-demo/products/{$categorySlug}/".Str::slug($product->name).'.png';
                 }
                 $demoUrls = array_map(Product::storagePhotoUrl(...), $demoPaths);
 

@@ -1,4 +1,5 @@
 {
+    "placeholders/acessorios/adaptador-usb-de-controle.png": "5e95e0ea6c3b1f1ef4bbcfad00a41b6bcf0af874f1e61304c60e076872dc5f57",
     "placeholders/acessorios/cabo-av-nintendo.png": "e2747bde22b608597e51cc29c9283791340aa28fe35e0f79a3310f0275c56a01",
     "placeholders/acessorios/controle-dreamcast.png": "c111487ab0ebdd8cee6f41b6758d3a227ab902431bc49391c004811ff96c6037",
     "placeholders/acessorios/controle-mega-drive-6-botoes.png": "dc5e7d4b9b00599aec47653ebcc65631200b8a115fddd86f5302ff10a3826e2b",
@@ -11,11 +12,21 @@
     "placeholders/consoles/game-boy-advance-sp.png": "ac97eee5a82febc7e95ab581aa21756d3742746811571b30ebe2cc95dbc2bc9f",
     "placeholders/consoles/game-boy-color.png": "6b857ac443a66aba72c3eb0f5835ad916f759e7782eff61e984065321451e143",
     "placeholders/consoles/master-system-iii.png": "07c623cdca58d8cb0d05247c59abec18c65c09fbec006400370a06382e4f9c6b",
+    "placeholders/consoles/mega-drive-iii.png": "6a44a7e8d881116acc787781319781b5d4536dc982030b3e7005e52b74090796",
     "placeholders/consoles/nintendo-64.png": "1585c84d62a12bebaaca20909aec8a6109d4921074d26ca5f3440c14580d1919",
     "placeholders/consoles/nintendo-gamecube.png": "55679c78741026a188bf53e60fa2247b1cbf878164cccddbf5c32d0aa61f8d1a",
     "placeholders/consoles/playstation-2-slim.png": "9fc95c6dd262531827f9d50161ec91c18e17b87111f5b0331048d6c010071dc6",
     "placeholders/consoles/playstation.png": "359f2108ce49beb2653f3debf7d1a40847cee37ce6b4b15a3758fcf9e40d61c0",
     "placeholders/consoles/sega-dreamcast.png": "11f7c7186188ec08a4bc5ca6dc2c115c371b8a30bf4cd2077794a5303a1a4524",
     "placeholders/consoles/super-nintendo.png": "3a781c8874e4a690eeab820df773d677a69b0ff1fac61d3d39c0cf71c1d9d078",
-    "placeholders/jogos/mario-kart-64.png": "cefa64224b47d2bfc7d4ebc0a712969213a38a5d454b912d7e5d262b8db8b70f"
+    "placeholders/jogos/crazy-taxi.png": "1f06309578d00ba89ce2547665e643a305e0059ac1975b1d90e421ce3a1822a7",
+    "placeholders/jogos/donkey-kong-country.png": "8e4ea2945d6c1037be656d954548e06d809e9e42e22bec62a41e50fadb228fe1",
+    "placeholders/jogos/jet-set-radio.png": "83020b10909a2be5d5123f1285ba70505bab32d5f43f129da4d97bd7daa4bf6e",
+    "placeholders/jogos/mario-kart-64.png": "cefa64224b47d2bfc7d4ebc0a712969213a38a5d454b912d7e5d262b8db8b70f",
+    "placeholders/jogos/shenmue.png": "678e4d58cb34187ea17ba78291478bd87c115a5eb2df2cb191be4cacb058e690",
+    "placeholders/jogos/skies-of-arcadia.png": "6bb75b4c8307a806367d22a36c0040eae5dd7c93a239ac8ecc757fcea74e3c7a",
+    "placeholders/jogos/sonic-adventure.png": "f1c1b64ea9f2a60ab353170f7eff7a4ed80becdcf0580e42e256f789669a074a",
+    "placeholders/jogos/sonic-the-hedgehog-2.png": "1e433a0b05bbe3b8f3d1bdd4575c83db085c6e81e2ed262d6f0bd908c110f74a",
+    "placeholders/jogos/street-fighter-ii.png": "42f0771f3cf332fe135b2168d42fd124c4ba14accd592ece5bdf8acfa250eed8",
+    "placeholders/jogos/super-mario-world.png": "9b2ec45d7444a1a8f74d0ca6234e50c85f8f499a0e90f4a33368268ad477d896"
 }
